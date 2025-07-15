@@ -1,1 +1,215 @@
- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Company Coverage Funnel Dashboard</title>
+<link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: #f4f6fa;
+    margin: 0; padding: 0;
+  }
+  .container {
+    max-width: 900px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 32px 24px 24px 24px;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 32px;
+    color: #2d3a4b;
+  }
+  .stage-form {
+    margin-bottom: 32px;
+    padding: 24px;
+    background: #f9fafc;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  }
+  .stage-form label {
+    display: block;
+    margin-top: 12px;
+    font-weight: 500;
+    color: #2d3a4b;
+  }
+  .stage-form input[type="text"],
+  .stage-form input[type="number"],
+  .stage-form textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #cfd8dc;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+  .filter-reasons {
+    margin: 8px 0;
+  }
+  .filter-reason-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .filter-reason-row input {
+    flex: 1;
+  }
+  .filter-reason-row button {
+    margin-left: 8px;
+    background: #e57373;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+  .add-reason-btn {
+    margin-top: 4px;
+    background: #64b5f6;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 12px;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .stage-form button[type="submit"] {
+    margin-top: 18px;
+    background: #388e3c;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 24px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .stages-list {
+    margin-top: 24px;
+  }
+  .stage-card {
+    background: #f5f7fa;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    margin-bottom: 24px;
+    padding: 20px 18px 18px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    position: relative;
+    flex-wrap: wrap;
+  }
+  .stage-card .stage-actions {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .stage-card .stage-actions button {
+    background: #90a4ae;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .stage-card .stage-actions .remove-btn {
+    background: #e57373;
+  }
+  .stage-details {
+    flex: 2 1 300px;
+  }
+  .stage-details h2 {
+    margin: 0 0 8px 0;
+    color: #1976d2;
+    font-size: 1.2rem;
+  }
+  .stage-details p {
+    margin: 4px 0 0 0;
+    color: #37474f;
+    font-size: 1rem;
+  }
+  .stage-details ul {
+    margin: 6px 0 0 18px;
+    color: #607d8b;
+    font-size: 0.98rem;
+  }
+  .stage-chart {
+    flex: 1 1 200px;
+    min-width: 180px;
+    max-width: 220px;
+    align-self: center;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 18px;
+  }
+  caption {
+    background: #f0f4fa;
+    font-weight: bold;
+    font-size: 1.2rem;
+    padding: 12px 0;
+    caption-side: top;
+    border-radius: 10px 10px 0 0;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  th {
+    background: #f0f4fa;
+  }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  @media (max-width: 700px) {
+    .container { padding: 8px; }
+    .stage-card { flex-direction: column; gap: 10px; }
+    .stage-chart { max-width: 100%; min-width: 120px; }
+  }
+</style>
+</head>
+<body>
+  <div class="dashboard-tabs" id="dashboardTabs" style="display:flex;gap:8px;align-items:center;justify-content:center;margin:24px 0 0 0;"></div>
+  <div class="container">
+    <h1>Company Coverage Funnel Dashboard</h1>
+    <form class="stage-form" id="stageForm">
+      <input type="hidden" id="editIndex" value="" />
+      <label for="stageTitle">Stage Title</label>
+      <input type="text" id="stageTitle" required />
+      <label for="totalReviewed">Total Companies Reviewed</label>
+      <input type="number" id="totalReviewed" min="0" required />
+      <label for="advanced">Companies Advanced to Next Stage</label>
+      <input type="number" id="advanced" min="0" required />
+      <label>Filter-out Reasons</label>
+      <div class="filter-reasons" id="filterReasons"></div>
+      <button type="button" class="add-reason-btn" id="addReasonBtn">+ Add Reason</button>
+      <div id="filterSumWarning" style="color:#e57373; font-size:0.98rem; margin-top:6px; display:none;"></div>
+      <label for="stageDesc">Filtering Description</label>
+      <textarea id="stageDesc" rows="3" required spellcheck="true"></textarea>
+      <div id="finalStageEditContainer" style="margin-top:10px; display:none;">
+        <label><input type="checkbox" id="finalStageEditCheckbox"> Final Stage</label>
+      </div>
+      <button type="submit" id="submitBtn">Add Stage</button>
+      <button type="button" id="finalStageBtn" style="background:#1976d2;color:#fff;margin-left:10px;padding:10px 24px;border:none;border-radius:4px;font-size:1.1rem;font-weight:700;cursor:pointer;">Final Stage</button>
+    </form>
+    <div class="stages-list" id="stagesList"></div>
+    <div id="finalCompaniesSection"></div>
+  </div>
+
+<script>
+// ... existing code ...
+</script>
+</body>
+</html>
