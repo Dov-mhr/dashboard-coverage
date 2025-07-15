@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Company Coverage Funnel Dashboard</title>
+<link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body {
+    font-family: 'Roboto', sans-serif;
+    background: #f4f6fa;
+    margin: 0; padding: 0;
+  }
+  .container {
+    max-width: 900px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 32px 24px 24px 24px;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 32px;
+    color: #2d3a4b;
+  }
+  .stage-form {
+    margin-bottom: 32px;
+    padding: 24px;
+    background: #f9fafc;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  }
+  .stage-form label {
+    display: block;
+    margin-top: 12px;
+    font-weight: 500;
+    color: #2d3a4b;
+  }
+  .stage-form input[type="text"],
+  .stage-form input[type="number"],
+  .stage-form textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #cfd8dc;
+    border-radius: 4px;
+    font-size: 1rem;
+    box-sizing: border-box;
+  }
+  .filter-reasons {
+    margin: 8px 0;
+  }
+  .filter-reason-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .filter-reason-row input {
+    flex: 1;
+  }
+  .filter-reason-row button {
+    margin-left: 8px;
+    background: #e57373;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+  .add-reason-btn {
+    margin-top: 4px;
+    background: #64b5f6;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 12px;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .stage-form button[type="submit"] {
+    margin-top: 18px;
+    background: #388e3c;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 24px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .stages-list {
+    margin-top: 24px;
+  }
+  .stage-card {
+    background: #f5f7fa;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    margin-bottom: 24px;
+    padding: 20px 18px 18px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    position: relative;
+    flex-wrap: wrap;
+  }
+  .stage-card .stage-actions {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .stage-card .stage-actions button {
+    background: #90a4ae;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 0.95rem;
+  }
+  .stage-card .stage-actions .remove-btn {
+    background: #e57373;
+  }
+  .stage-details {
+    flex: 2 1 300px;
+  }
+  .stage-details h2 {
+    margin: 0 0 8px 0;
+    color: #1976d2;
+    font-size: 1.2rem;
+  }
+  .stage-details p {
+    margin: 4px 0 0 0;
+    color: #37474f;
+    font-size: 1rem;
+  }
+  .stage-details ul {
+    margin: 6px 0 0 18px;
+    color: #607d8b;
+    font-size: 0.98rem;
+  }
+  .stage-chart {
+    flex: 1 1 200px;
+    min-width: 180px;
+    max-width: 220px;
+    align-self: center;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 18px;
+  }
+  caption {
+    background: #f0f4fa;
+    font-weight: bold;
+    font-size: 1.2rem;
+    padding: 12px 0;
+    caption-side: top;
+    border-radius: 10px 10px 0 0;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  th {
+    background: #f0f4fa;
+  }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  @media (max-width: 700px) {
+    .container { padding: 8px; }
+    .stage-card { flex-direction: column; gap: 10px; }
+    .stage-chart { max-width: 100%; min-width: 120px; }
+  }
+</style>
+</head>
+<body>
+  <div class="dashboard-tabs" id="dashboardTabs" style="display:flex;gap:8px;align-items:center;justify-content:center;margin:24px 0 0 0;"></div>
+  <div class="container">
+    <h1>Company Coverage Funnel Dashboard</h1>
+    <form class="stage-form" id="stageForm">
+      <input type="hidden" id="editIndex" value="" />
+      <label for="stageTitle">Stage Title</label>
+      <input type="text" id="stageTitle" required />
+      <label for="totalReviewed">Total Companies Reviewed</label>
+      <input type="number" id="totalReviewed" min="0" required />
+      <label for="advanced">Companies Advanced to Next Stage</label>
+      <input type="number" id="advanced" min="0" required />
+      <label>Filter-out Reasons</label>
+      <div class="filter-reasons" id="filterReasons"></div>
+      <button type="button" class="add-reason-btn" id="addReasonBtn">+ Add Reason</button>
+      <div id="filterSumWarning" style="color:#e57373; font-size:0.98rem; margin-top:6px; display:none;"></div>
+      <label for="stageDesc">Filtering Description</label>
+      <textarea id="stageDesc" rows="3" required spellcheck="true"></textarea>
+      <div id="finalStageEditContainer" style="margin-top:10px; display:none;">
+        <label><input type="checkbox" id="finalStageEditCheckbox"> Final Stage</label>
+      </div>
+      <button type="submit" id="submitBtn">Add Stage</button>
+      <button type="button" id="finalStageBtn" style="background:#1976d2;color:#fff;margin-left:10px;padding:10px 24px;border:none;border-radius:4px;font-size:1.1rem;font-weight:700;cursor:pointer;">Final Stage</button>
+    </form>
+    <div class="stages-list" id="stagesList"></div>
+    <div id="finalCompaniesSection"></div>
+  </div>
+
+<script>
+  let dashboards = [];
+  let currentDashboardIdx = 0;
+  const DASHBOARDS_KEY = 'coverage_dashboards_v1';
+  const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxQW9NF8xvT31oi8wYJYxRmCFzrVkp0qt4eHW-x5w8SiIr_XlsA34pHIc787Z4moIQBvw/exec';
+
+  async function saveDashboards(newDataRow) { 
+    try { 
+      const response = await fetch(GAS_WEB_APP_URL, { 
+        method: 'POST', // Send a POST request 
+        mode: 'cors', // Required for cross-origin requests 
+        headers: { 
+          'Content-Type': 'application/json', // Tell the server we're sending JSON 
+        }, 
+        body: JSON.stringify(newDataRow), // Send the new data row as JSON 
+      }); 
+      if (!response.ok) { 
+        throw new Error(`HTTP error! status: ${response.status}`); 
+      } 
+      const result = await response.json(); // Get the response from Apps Script 
+      if (result.success) { 
+        console.log("Data saved successfully:", result.message); 
+        // Optional: You might want to reload all data after a successful save 
+        // to ensure your client-side data is in sync with the sheet. 
+        await loadDashboards(); 
+      } else { 
+        console.error("Error saving data:", result.message); 
+      }
+    } catch (error) { 
+      console.error("Error connecting to Google Sheet API:", error); 
+    } 
+  }
+
+  async function loadDashboards() { 
+    try { 
+      const response = await fetch(GAS_WEB_APP_URL); 
+      if (!response.ok) { 
+        throw new Error(`HTTP error! status: ${response.status}`);
+      } 
+      const data = await response.json(); // Data from Google Sheet (array of objects) 
+
+      // *** IMPORTANT ADAPTATION FOR YOUR DASHBOARDS VARIABLE *** 
+      // Your original 'dashboards' variable was structured like: 
+      // [{ name: 'Dashboard 1', stages: [] }] 
+      // The 'data' from the Google Sheet is a flat array of your table rows. 
+      // We are assuming your rendering functions (e.g., renderFinalCompaniesTable)
+      // expect the table data to be within 'dashboards[0].stages'. 
+      dashboards = [{ name: 'Dashboard 1', stages: data }]; 
+      // If your table data is used differently, you might need to adjust the line above 
+      // to correctly assign 'data' to the part of 'dashboards' your rendering needs. 
+      // For example, if 'dashboards' itself should be the flat array, use: // dashboards = data; 
+      // After loading, re-render your table 
+      renderFinalCompaniesTable(); // Ensure this function correctly uses the 'dashboards' structure above 
+    } catch (error) { 
+      console.error("Error loading data from Google Sheet:", error); 
+      // Fallback: If there's an error, initialize with empty data 
+      dashboards = [{ name: 'Dashboard 1', stages: [] }]; 
+      renderFinalCompaniesTable(); 
+      // Render empty table if error 
+    } 
+  }
+
+  function getCurrentDashboard() {
+    return dashboards[currentDashboardIdx];
+  }
+  function setCurrentDashboard(idx) {
+    currentDashboardIdx = idx;
+    renderDashboardTabs();
+    renderAll();
+  }
+  async function addDashboard() {
+    dashboards.push({ name: `Dashboard ${dashboards.length + 1}`, stages: [] });
+    setCurrentDashboard(dashboards.length - 1);
+    await saveDashboards(dashboards);
+  }
+  async function renameDashboard(idx) {
+    const newName = prompt('Rename dashboard:', dashboards[idx].name);
+    if (newName && newName.trim()) {
+      dashboards[idx].name = newName.trim();
+      await saveDashboards(dashboards);
+      renderDashboardTabs();
+    }
+  }
+  async function deleteDashboard(idx) {
+    if (dashboards.length === 1) return alert('At least one dashboard is required.');
+    if (confirm('Delete this dashboard?')) {
+      dashboards.splice(idx, 1);
+      if (currentDashboardIdx >= dashboards.length) currentDashboardIdx = dashboards.length - 1;
+      await saveDashboards(dashboards);
+      renderDashboardTabs();
+      renderAll();
+    }
+  }
+  function renderDashboardTabs() {
+    const tabs = document.getElementById('dashboardTabs');
+    tabs.innerHTML = '';
+    dashboards.forEach((db, idx) => {
+      const tab = document.createElement('button');
+      tab.textContent = db.name;
+      Object.assign(tab.style, {
+        padding: '8px 18px',
+        borderRadius: '6px 6px 0 0',
+        border: 'none',
+        background: idx === currentDashboardIdx ? '#1976d2' : '#e3eaf2',
+        color: idx === currentDashboardIdx ? '#fff' : '#1976d2',
+        fontWeight: idx === currentDashboardIdx ? 'bold' : 'normal',
+        cursor: 'pointer',
+        position: 'relative',
+      });
+      tab.onclick = () => setCurrentDashboard(idx);
+      tab.oncontextmenu = e => { e.preventDefault(); renameDashboard(idx); };
+      tabs.appendChild(tab);
+
+      if (dashboards.length > 1) {
+        const delBtn = document.createElement('span');
+        delBtn.textContent = '×';
+        delBtn.title = 'Delete';
+        Object.assign(delBtn.style, {
+          marginLeft: '4px',
+          color: '#e57373',
+          cursor: 'pointer',
+          position: 'absolute',
+          top: '2px',
+          right: '4px',
+          fontWeight: 'bold',
+          userSelect: 'none',
+        });
+        delBtn.onclick = e => { e.stopPropagation(); deleteDashboard(idx); };
+        tab.appendChild(delBtn);
+      }
+    });
+
+    // Add New Dashboard button
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+ New Dashboard';
+    Object.assign(addBtn.style, {
+      padding: '8px 18px',
+      borderRadius: '6px 6px 0 0',
+      border: 'none',
+      background: '#64b5f6',
+      color: '#fff',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+    });
+    addBtn.onclick = addDashboard;
+    tabs.appendChild(addBtn);
+
+    // Clear Current Dashboard button
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = 'Clear This Dashboard';
+    Object.assign(clearBtn.style, {
+      padding: '8px 18px',
+      borderRadius: '6px 6px 0 0',
+      border: 'none',
+      background: '#e57373',
+      color: '#fff',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+      marginLeft: '16px',
+    });
+    clearBtn.onclick = async () => {
+      const dashName = getCurrentDashboard().name || 'this dashboard';
+      if (confirm(`Clear all stages and restart '${dashName}'? This affects only the current dashboard.`)) {
+        getCurrentDashboard().stages = [];
+        await saveDashboards(dashboards);
+        renderAll();
+      }
+    };
+    tabs.appendChild(clearBtn);
+  }
+
+  // State
+  let stages = [];
+  let editingIndex = null;
+  let isFinalStage = false;
+
+  // DOM elements
+  const stageForm = document.getElementById('stageForm');
+  const stageTitle = document.getElementById('stageTitle');
+  const totalReviewed = document.getElementById('totalReviewed');
+  const advanced = document.getElementById('advanced');
+  const filterReasonsDiv = document.getElementById('filterReasons');
+  const addReasonBtn = document.getElementById('addReasonBtn');
+  const filterSumWarning = document.getElementById('filterSumWarning');
+  const stageDesc = document.getElementById('stageDesc');
+  const stagesList = document.getElementById('stagesList');
+  const submitBtn = document.getElementById('submitBtn');
+  const finalStageBtn = document.getElementById('finalStageBtn');
+
+  const finalStageEditContainer = document.getElementById('finalStageEditContainer');
+  const finalStageEditCheckbox = document.getElementById('finalStageEditCheckbox');
+
+  // Filter reasons render & management
+  function renderFilterReasons(reasons = [{ reason: '', count: '' }]) {
+    filterReasonsDiv.innerHTML = '';
+    reasons.forEach((item, idx) => {
+      const row = document.createElement('div');
+      row.className = 'filter-reason-row';
+
+      const inputReason = document.createElement('input');
+      inputReason.type = 'text';
+      inputReason.placeholder = 'Reason';
+      inputReason.value = item.reason;
+      inputReason.oninput = () => {
+        item.reason = inputReason.value;
+        validateFilterSum();
+      };
+
+      const inputCount = document.createElement('input');
+      inputCount.type = 'number';
+      inputCount.placeholder = 'Count';
+      inputCount.value = item.count;
+      inputCount.oninput = () => {
+        item.count = parseInt(inputCount.value) || 0;
+        validateFilterSum();
+      };
+
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = '×';
+      removeBtn.onclick = () => {
+        reasons.splice(idx, 1);
+        renderFilterReasons(reasons);
+        validateFilterSum();
+      };
+
+      row.appendChild(inputReason);
+      row.appendChild(inputCount);
+      row.appendChild(removeBtn);
+      filterReasonsDiv.appendChild(row);
+    });
+  }
+
+  function validateFilterSum() {
+    const reasons = getFilterReasons();
+    const totalFiltered = reasons.reduce((sum, item) => sum + (parseInt(item.count) || 0), 0);
+    const totalReviewedVal = parseInt(totalReviewed.value) || 0;
+    const advancedVal = parseInt(advanced.value) || 0;
+    
+    if (totalFiltered + advancedVal > totalReviewedVal) {
+      filterSumWarning.textContent = `Warning: Filter reasons (${totalFiltered}) + Advanced (${advancedVal}) > Total Reviewed (${totalReviewedVal})`;
+      filterSumWarning.style.display = 'block';
+    } else {
+      filterSumWarning.style.display = 'none';
+    }
+  }
+
+  function getFilterReasons() {
+    const rows = filterReasonsDiv.querySelectorAll('.filter-reason-row');
+    const reasons = [];
+    rows.forEach(row => {
+      const inputs = row.querySelectorAll('input');
+      if (inputs[0].value.trim()) {
+        reasons.push({
+          reason: inputs[0].value.trim(),
+          count: parseInt(inputs[1].value) || 0
+        });
+      }
+    });
+    return reasons;
+  }
+
+  addReasonBtn.onclick = () => {
+    const reasons = getFilterReasons();
+    reasons.push({ reason: '', count: '' });
+    renderFilterReasons(reasons);
+  };
+
+  // Form submission
+  stageForm.onsubmit = async (e) => {
+    e.preventDefault();
+    
+    // Use the checkbox if editing, otherwise use isFinalStage
+    let finalStageValue = isFinalStage;
+    if (editingIndex !== null) {
+      finalStageValue = finalStageEditCheckbox.checked;
+    }
+
+    const stage = {
+      title: stageTitle.value.trim(),
+      totalReviewed: parseInt(totalReviewed.value),
+      advanced: parseInt(advanced.value),
+      filterReasons: getFilterReasons(),
+      description: stageDesc.value.trim(),
+      isFinalStage: finalStageValue
+    };
+
+    if (editingIndex !== null) {
+      getCurrentDashboard().stages[editingIndex] = stage;
+      editingIndex = null;
+      submitBtn.textContent = 'Add Stage';
+      finalStageBtn.style.display = 'inline-block';
+      finalStageEditContainer.style.display = 'none';
+    } else {
+      getCurrentDashboard().stages.push(stage);
+    }
+
+    await saveDashboards(dashboards);
+    renderAll();
+    stageForm.reset();
+    renderFilterReasons();
+    isFinalStage = false;
+  };
+
+  finalStageBtn.onclick = () => {
+    isFinalStage = true;
+    stageTitle.value = 'Final Stage';
+    stageTitle.readOnly = true;
+    submitBtn.textContent = 'Add Final Stage';
+    finalStageBtn.style.display = 'none';
+    finalStageEditContainer.style.display = 'none'; // Hide checkbox when final stage is set
+  };
+
+  // Render functions
+  function renderStage(stage, index) {
+    const stageCard = document.createElement('div');
+    stageCard.className = 'stage-card';
+
+    const filterOutCount = stage.filterReasons.reduce((sum, item) => sum + item.count, 0);
+    const conversionRate = ((stage.advanced / stage.totalReviewed) * 100).toFixed(1);
+    const filterOutRate = ((filterOutCount / stage.totalReviewed) * 100).toFixed(1);
+
+    stageCard.innerHTML = `
+      <div class="stage-actions">
+        <button onclick="editStage(${index})">Edit</button>
+        <button class="remove-btn" onclick="removeStage(${index})">Remove</button>
+      </div>
+      <div class="stage-details">
+        <h2>${stage.title}</h2>
+        <p><strong>Total Reviewed:</strong> ${stage.totalReviewed.toLocaleString()}</p>
+        <p><strong>Advanced:</strong> ${stage.advanced.toLocaleString()} (${conversionRate}%)</p>
+        <p><strong>Filtered Out:</strong> ${filterOutCount.toLocaleString()} (${filterOutRate}%)</p>
+        <p><strong>Description:</strong> ${stage.description}</p>
+        ${stage.filterReasons.length > 0 ? `
+          <p><strong>Filter Reasons:</strong></p>
+          <ul>
+            ${stage.filterReasons.map(item => `<li>${item.reason}: ${item.count.toLocaleString()}</li>`).join('')}
+          </ul>
+        ` : ''}
+        ${stage.isFinalStage ? `<div style="margin-top:12px;display:inline-block;padding:4px 14px;background:#1976d2;color:#fff;font-weight:bold;border-radius:6px;font-size:0.98rem;letter-spacing:1px;">Final Stage</div>` : ''}
+      </div>
+      <div class="stage-chart" style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+        <canvas id="doughnutChart${index}" width="200" height="200"></canvas>
+        ${stage.filterReasons.length > 0 ? `<canvas id="barChart${index}" width="220" height="140"></canvas>` : ''}
+      </div>
+    `;
+
+    return stageCard;
+  }
+
+  function renderDoughnutChart(stage, index) {
+    const canvas = document.getElementById(`doughnutChart${index}`);
+    if (!canvas) return;
+    if (window[`doughnutChart${index}Instance`]) {
+      window[`doughnutChart${index}Instance`].destroy();
+    }
+    const filterOutCount = stage.filterReasons.reduce((sum, item) => sum + item.count, 0);
+    window[`doughnutChart${index}Instance`] = new Chart(canvas.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Advanced', 'Filtered Out'],
+        datasets: [{
+          data: [stage.advanced, filterOutCount],
+          backgroundColor: ['#1976d2', '#e57373'], // blue and red
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { font: { size: 12 } }
+          }
+        }
+      }
+    });
+  }
+
+  function renderBarChart(stage, index) {
+    if (!stage.filterReasons || stage.filterReasons.length === 0) return;
+    const canvas = document.getElementById(`barChart${index}`);
+    if (!canvas) return;
+    if (window[`barChart${index}Instance`]) {
+      window[`barChart${index}Instance`].destroy();
+    }
+    // Only show reasons with count > 0
+    const sortedReasons = stage.filterReasons
+      .filter(item => item.reason && item.count > 0)
+      .sort((a, b) => b.count - a.count);
+    if (sortedReasons.length === 0) {
+      canvas.style.display = 'none';
+      return;
+    }
+    canvas.style.display = 'block';
+    const labels = sortedReasons.map(item => item.reason); // Use full label
+    const data = sortedReasons.map(item => item.count);
+    // Distinct color palette for bars
+    const colors = [
+      '#43a047', '#fbc02d', '#8e24aa', '#039be5', '#fb8c00',
+      '#c62828', '#6d4c41', '#00acc1', '#7cb342', '#f06292'
+    ];
+    window[`barChart${index}Instance`] = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Filtered Out',
+          data: data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderColor: colors.slice(0, labels.length),
+          borderWidth: 1,
+          borderRadius: 3,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const percentage = ((context.parsed.y / stage.totalReviewed) * 100).toFixed(1);
+                return `${context.parsed.y.toLocaleString()} (${percentage}%)`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: { beginAtZero: true, display: false },
+          x: {
+            display: true,
+            title: { display: false },
+            ticks: {
+              color: '#37474f',
+              font: { size: 12 },
+              maxRotation: 45,
+              minRotation: 0,
+              autoSkip: false,
+              callback: function(value, idx) {
+                // Show full label, truncate if too long
+                const label = labels[idx];
+                return label.length > 30 ? label.slice(0, 27) + '...' : label;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Update renderAll to call both chart renderers for each stage
+  function renderAll() {
+    const currentDashboard = getCurrentDashboard();
+    stagesList.innerHTML = '';
+
+    // Hide the stage form if a final stage is present
+    let showForm = !hasFinalStage();
+
+    currentDashboard.stages.forEach((stage, index) => {
+      const stageElement = renderStage(stage, index);
+      stagesList.appendChild(stageElement);
+      setTimeout(() => {
+        renderDoughnutChart(stage, index);
+        renderBarChart(stage, index);
+      }, 100);
+    });
+
+    // Move the form below the last stage (if it should be shown)
+    if (showForm) {
+      stagesList.appendChild(stageForm);
+      stageForm.style.display = '';
+    } else {
+      stageForm.style.display = 'none';
+    }
+
+    renderFinalCompanies();
+    renderFinalCompaniesTable();
+  }
+
+  // 1. Hide open questions if final stage exists
+  function hasFinalStage() {
+    const currentDashboard = getCurrentDashboard();
+    return currentDashboard.stages.some(stage => stage.isFinalStage);
+  }
+
+  // 1. Add a helper to get/set finalCompanies for the current dashboard
+  function getFinalCompanies() {
+    const db = getCurrentDashboard();
+    if (!db.finalCompanies) db.finalCompanies = [];
+    return db.finalCompanies;
+  }
+  async function setFinalCompanies(arr) {
+    getCurrentDashboard().finalCompanies = arr;
+    await saveDashboards(dashboards);
+  }
+
+  // 2. Update renderFinalCompaniesTable to use input fields and persist data
+  function renderFinalCompaniesTable() {
+    const currentDashboard = getCurrentDashboard();
+    const finalStage = currentDashboard.stages.find(stage => stage.isFinalStage);
+    const section = document.getElementById('finalCompaniesSection');
+    if (!section) return;
+    if (!finalStage) {
+      section.innerHTML = '';
+      return;
+    }
+    const numRows = finalStage.advanced;
+    const columns = [
+      'Company', 'Sector', 'Ttl Raise', 'A-Round', 'Pre-A Investors', 'B Round', 'B Round Investors'
+    ];
+    // Ensure finalCompanies array is the right length
+    let data = getFinalCompanies();
+    while (data.length < numRows) data.push({});
+    while (data.length > numRows) data.pop();
+    setFinalCompanies(data);
+
+    // Define custom widths for certain columns
+    const colWidths = {
+      'Ttl Raise': '70px',
+      'A-Round': '70px',
+      'B Round': '70px',
+      'Pre-A Investors': '180px'
+    };
+
+    let tableHtml = `<table style="margin-top:32px;width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#f0f4fa;">
+          ${columns.map(col => `<th>${col}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+`;
+    for (let i = 0; i < numRows; i++) {
+      tableHtml += '<tr>' + columns.map((col, j) => {
+        const val = data[i]?.[col] || '';
+        const width = colWidths[col] || '100%';
+        return `<td><input type="text" data-row="${i}" data-col="${col}" value="${val}" style="width:${width};box-sizing:border-box;padding:4px 6px;font-size:1rem;"></td>`;
+      }).join('') + '</tr>';
+    }
+    tableHtml += '</tbody></table>';
+    section.innerHTML = tableHtml;
+
+    // Add event listeners for all inputs
+    section.querySelectorAll('input[type="text"]').forEach(input => {
+      input.addEventListener('input', function() {
+        const row = parseInt(this.getAttribute('data-row'));
+        const col = this.getAttribute('data-col');
+        let arr = getFinalCompanies();
+        if (!arr[row]) arr[row] = {};
+        arr[row][col] = this.value;
+        setFinalCompanies(arr);
+      });
+    });
+  }
+
+  function renderFinalCompanies() {
+    const currentDashboard = getCurrentDashboard();
+    const finalStage = currentDashboard.stages.find(stage => stage.isFinalStage);
+    
+    if (finalStage) {
+      const finalSection = document.getElementById('finalCompaniesSection');
+      finalSection.innerHTML = `
+        <table>
+          <caption>Final Results</caption>
+          <tr>
+            <th>Metric</th>
+            <th>Count</th>
+            <th>Percentage</th>
+          </tr>
+          <tr>
+            <td>Total Companies Reviewed</td>
+            <td>${currentDashboard.stages.reduce((sum, stage) => sum + stage.totalReviewed, 0).toLocaleString()}</td>
+            <td>100%</td>
+          </tr>
+          <tr>
+            <td>Companies Advanced to Final Stage</td>
+            <td>${finalStage.advanced.toLocaleString()}</td>
+            <td>${((finalStage.advanced / currentDashboard.stages.reduce((sum, stage) => sum + stage.totalReviewed, 0)) * 100).toFixed(1)}%</td>
+          </tr>
+        </table>
+      `;
+    }
+  }
+
+  function editStage(index) {
+    const stage = getCurrentDashboard().stages[index];
+    editingIndex = index;
+    
+    stageTitle.value = stage.title;
+    totalReviewed.value = stage.totalReviewed;
+    advanced.value = stage.advanced;
+    stageDesc.value = stage.description;
+
+    renderFilterReasons(stage.filterReasons);
+    validateFilterSum();
+
+    submitBtn.textContent = 'Update Stage';
+    finalStageBtn.style.display = 'none';
+
+    // Show and set the final stage checkbox
+    finalStageEditContainer.style.display = 'block';
+    finalStageEditCheckbox.checked = !!stage.isFinalStage;
+
+    if (stage.isFinalStage) {
+      isFinalStage = true;
+      stageTitle.readOnly = true;
+    } else {
+      isFinalStage = false;
+      stageTitle.readOnly = false;
+    }
+  }
+
+  async function removeStage(index) {
+    if (confirm('Remove this stage?')) {
+      getCurrentDashboard().stages.splice(index, 1);
+      await saveDashboards(dashboards);
+      renderAll();
+    }
+  }
+
+  // Event listeners for validation
+  totalReviewed.oninput = validateFilterSum;
+  advanced.oninput = validateFilterSum;
+
+  // Initialize
+  loadDashboards();
+  renderDashboardTabs();
+  renderAll();
+  renderFilterReasons();
+</script>
+</body>
+</html>
+        
