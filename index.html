@@ -395,6 +395,7 @@
   let stages = []; // This 'stages' variable is likely redundant if dashboards[currentDashboardIdx].stages is the source of truth
   let editingIndex = null;
   let isFinalStage = false;
+  let currentFilterReasons = [{ reason: '', count: '' }];
 
   // DOM elements
   const stageForm = document.getElementById('stageForm');
@@ -413,7 +414,8 @@
   const finalStageEditCheckbox = document.getElementById('finalStageEditCheckbox');
 
   // Filter reasons render & management
-  function renderFilterReasons(reasons = [{ reason: '', count: '' }]) {
+  function renderFilterReasons(reasons = currentFilterReasons) {
+    currentFilterReasons = reasons;
     filterReasonsDiv.innerHTML = '';
     reasons.forEach((item, idx) => {
       const row = document.createElement('div');
@@ -425,6 +427,7 @@
       inputReason.value = item.reason;
       inputReason.oninput = () => {
         item.reason = inputReason.value;
+        currentFilterReasons[idx].reason = inputReason.value;
         validateFilterSum();
       };
 
@@ -434,6 +437,7 @@
       inputCount.value = item.count;
       inputCount.oninput = () => {
         item.count = parseInt(inputCount.value) || 0;
+        currentFilterReasons[idx].count = item.count;
         validateFilterSum();
       };
 
@@ -441,7 +445,8 @@
       removeBtn.textContent = '×';
       removeBtn.onclick = () => {
         reasons.splice(idx, 1);
-        renderFilterReasons(reasons);
+        currentFilterReasons = [...reasons];
+        renderFilterReasons(currentFilterReasons);
         validateFilterSum();
       };
 
@@ -467,24 +472,12 @@
   }
 
   function getFilterReasons() {
-    const rows = filterReasonsDiv.querySelectorAll('.filter-reason-row');
-    const reasons = [];
-    rows.forEach(row => {
-      const inputs = row.querySelectorAll('input');
-      if (inputs[0].value.trim()) {
-        reasons.push({
-          reason: inputs[0].value.trim(),
-          count: parseInt(inputs[1].value) || 0
-        });
-      }
-    });
-    return reasons;
+    return currentFilterReasons.filter(r => r.reason.trim());
   }
 
   addReasonBtn.onclick = () => {
-    const reasons = getFilterReasons();
-    reasons.push({ reason: '', count: '' });
-    renderFilterReasons(reasons);
+    currentFilterReasons.push({ reason: '', count: '' });
+    renderFilterReasons(currentFilterReasons);
   };
 
   // Form submission
@@ -519,7 +512,8 @@
     await saveDashboards(dashboards);
     renderAll(); // No need to await here, renderAll doesn't return a promise directly
     stageForm.reset();
-    renderFilterReasons();
+    currentFilterReasons = [{ reason: '', count: '' }];
+    renderFilterReasons(currentFilterReasons);
     isFinalStage = false;
   };
 
@@ -817,7 +811,8 @@
     advanced.value = stage.advanced;
     stageDesc.value = stage.description;
 
-    renderFilterReasons(stage.filterReasons);
+    currentFilterReasons = stage.filterReasons && stage.filterReasons.length > 0 ? JSON.parse(JSON.stringify(stage.filterReasons)) : [{ reason: '', count: '' }];
+    renderFilterReasons(currentFilterReasons);
     validateFilterSum();
 
     submitBtn.textContent = 'Update Stage';
@@ -854,7 +849,8 @@
     await loadDashboards();
     renderDashboardTabs();
     renderAll();
-    renderFilterReasons();
+    currentFilterReasons = [{ reason: '', count: '' }];
+    renderFilterReasons(currentFilterReasons);
   })();
 </script>
 </body>
